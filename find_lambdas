@@ -3,3 +3,74 @@ aws lambda list-functions --query 'Functions[*].[FunctionName,Runtime]' --output
 
 aws lambda list-functions --query 'Functions[*].[FunctionName,Runtime]' --output json | \
 jq -r '.[] | select(.[1] | test("python3\\.(8|9|10)")) | [.[]] | @csv' > lambda_functions_python_3.10_or_lower.csv
+
+
+
+#!/bin/bash
+
+# Output CSV file
+OUTPUT_FILE="lambda_functions_python_3.10_or_lower.csv"
+
+# Initialize CSV file with headers
+echo "Region,FunctionName,PythonVersion" > "$OUTPUT_FILE"
+
+# Regions to query
+REGIONS=("us-east-1" "us-east-2")
+
+# Function to process Lambda functions for a given region
+process_region() {
+    local region=$1
+    local marker=""
+    local has_more=true
+
+    while [ "$has_more" = true ]; do
+        # Run AWS CLI command to list functions with pagination
+        if [ -z "$marker" ]; then
+            response=$(aws lambda list-functions \
+                --region "$region" \
+                --query 'Functions[*].[FunctionName,Runtime]' \
+                --output json 2>/dev/null)
+        else
+            response=$(aws lambda list-functions \
+                --region "$region" \
+                --starting-token "$marker" \
+                --query 'Functions[*].[FunctionName,Runtime]' \
+                --output json 2>/dev/null)
+        fi
+
+        # Check if response is empty or an error occurred
+        if [ -z "$response" ] || [ "$(echo "$response" | jq '. | length')" -eq 0 ]; then
+            has_more=false
+            continue
+        fi
+
+        # Filter functions with Python 3.8, 3.9, or 3.10 and append to CSV
+        echo "$response" | jq -r --arg region "$region" \
+            '.[] | select(.[1] | test("python3\\.(8|9|10)")) | [$region, .[0], .[1]] | @csv' >> "$OUTPUT_FILE"
+
+        # Check for NextMarker for pagination
+        marker=$(aws lambda list-functions \
+            --region "$region" \
+            --starting-token "$marker" \
+            --query 'NextMarker' \
+            --output text 2>/dev/null)
+
+        if [ "$marker" == "None" ] || [ -z "$marker" ]; then
+            has_more=false
+        fi
+    done
+}
+
+# Loop through regions
+for region in "${REGIONS[@]}"; do
+    echo "Processing region: $region"
+    process_region "$region"
+done
+
+# Check if any functions were found
+if [ $(wc -l < "$OUTPUT_FILE") -le 1 ]; then
+    echo "No Lambda functions found with Python <= 3.10 in us-east-1 or us-east-2."
+    rm "$OUTPUT_FILE"
+else
+    echo "Results saved to $OUTPUT_FILE"
+fi
