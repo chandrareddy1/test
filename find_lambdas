@@ -1,0 +1,1 @@
+aws lambda list-functions --query 'Functions[*].[FunctionName,Runtime]' --output json | jq '.[] | select(.[1] | test("python3\\.(8|9|10)")) | .[0]' > lambda_functions_python_3.10_or_lower.txt
