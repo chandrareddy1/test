@@ -5,6 +5,11 @@ aws lambda list-functions --query 'Functions[*].[FunctionName,Runtime]' --output
 jq -r '.[] | select(.[1] | test("python3\\.(8|9|10)")) | [.[]] | @csv' > lambda_functions_python_3.10_or_lower.csv
 
 
+account_id=$(aws sts get-caller-identity --query 'Account' --output text)
+account_alias=$(aws iam list-account-aliases --query 'AccountAliases[0]' --output text)
+echo "Account ID: $account_id, Account Alias: ${account_alias:-None}"
+
+
 
 #!/bin/bash
 
