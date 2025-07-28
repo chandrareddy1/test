@@ -1,0 +1,33 @@
+To ensure the Route 53 Resolver rules are set up in your AWS account for forwarding DNS queries (likely for the `iam.amazonaws.com.` domain) to the VPC endpoint (VPCE) resolver IPs in us-east-1 from both us-east-1 and us-east-2, you'll need to verify using AWS CLI or Console. This assumes a centralized setup with an inbound Resolver endpoint in us-east-1 (whose IPs act as the "VPCE resolver IPs" for forwarding, as private DNS for the IAM VPCE is handled locally there).
+
+Note: Resolver rules are regional, and forwarding targets the IPs of an inbound Resolver endpoint in us-east-1 (not the VPCE ENIs directly). Ensure networking (e.g., VPC peering/TGW) allows UDP/TCP 53 traffic to those IPs.
+
+### Step 1: Verify the IAM VPCE and Inbound Resolver Endpoint in us-east-1
+- List VPCEs: `aws ec2 describe-vpc-endpoints --region us-east-1 --filters "Name=service-name,Values=com.amazonaws.us-east-1.iam"`
+  - Confirm it exists, private DNS is enabled, and note the VPC ID.
+- List Resolver endpoints: `aws route53resolver list-resolver-endpoints --region us-east-1`
+  - Look for an inbound endpoint (Direction: INBOUND) in the same VPC as the VPCE.
+- Get its IPs (these are the target "resolver IPs"): `aws route53resolver list-resolver-endpoint-ip-addresses --resolver-endpoint-id <endpoint-id-from-above> --region us-east-1`
+  - Note the private IPs (e.g., 10.0.0.100, 10.0.1.100).
+
+If missing, create them via Console (Route 53 > Resolver > Endpoints) or CLI (see AWS docs for `create-resolver-endpoint`).
+
+### Step 2: Check Resolver Rules in us-east-1
+- List rules: `aws route53resolver list-resolver-rules --region us-east-1`
+- For each relevant rule ID: `aws route53resolver get-resolver-rule --resolver-rule-id <id> --region us-east-1`
+  - Verify: DomainName is `iam.amazonaws.com.` (or similar), RuleType is FORWARD, and TargetIps match the inbound endpoint IPs from Step 1 (with Port 53).
+- If not present and needed (e.g., for multi-VPC in us-east-1), create via `aws route53resolver create-resolver-rule --region us-east-1 --name iam-forward --rule-type FORWARD --domain-name iam.amazonaws.com. --target-ips Ip=<ip1>,Port=53 Ip=<ip2>,Port=53 --resolver-endpoint-id <outbound-endpoint-id-if-needed>`
+
+### Step 3: Check Resolver Rules in us-east-2
+- List rules: `aws route53resolver list-resolver-rules --region us-east-2`
+- For each relevant rule ID: `aws route53resolver get-resolver-rule --resolver-rule-id <id> --region us-east-2`
+  - Verify: DomainName is `iam.amazonaws.com.`, RuleType is FORWARD, and TargetIps match the us-east-1 inbound endpoint IPs from Step 1.
+- Associate the rule with your VPCs: `aws route53resolver associate-resolver-rule --region us-east-2 --resolver-rule-id <id> --vpc-id <your-vpc-id>`
+- If missing, create an outbound rule: `aws route53resolver create-resolver-rule --region us-east-2 --name iam-forward --rule-type FORWARD --domain-name iam.amazonaws.com. --target-ips Ip=<us-east-1-ip1>,Port=53 Ip=<us-east-1-ip2>,Port=53 --resolver-endpoint-id <outbound-endpoint-id-in-us-east-2>`
+
+### Step 4: Test Resolution
+From an EC2 instance in each region: `dig iam.amazonaws.com`
+- It should resolve to private IPs of the us-east-1 VPCE (not public IPs).
+
+If rules are missing or incorrect, add them as above and re-test. For full docs, see AWS Route 53 Resolver guide.
+<argument name="citation_id">10</argument>
