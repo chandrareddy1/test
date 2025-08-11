@@ -1,0 +1,96 @@
+[project]
+name = "mcp-a2a-master"
+version = "0.1.0"
+description = "Multi-Agent Mortgage Application Processing System with Streamlit Frontend"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "a2a-sdk>=0.2.15",
+    "asyncclick>=8.1.8",
+    "autogen-ext[docker,http-tool,openai]>=0.7.2",
+    "autogen-agentchat>=0.7.2",
+    "crewai>=0.157.0",
+    "crewai-tools>=0.0.1",
+    "flask>=3.1.1",
+    "google-adk>=1.7.0",
+    "jinja2>=3.1.6",
+    "langchain>=0.3.27",
+    "langchain-core>=0.3.73",
+    "langchain-openai>=0.3.28",
+    "langgraph>=0.6.4",
+    "mcp[cli]>=1.12.0",
+    "numpy>=2.3.1",
+    "openai>=1.99.1",
+    "pandas>=2.3.1",
+    "pdfplumber>=0.11.7",
+    "reportlab>=4.4.3",
+    "smolagents>=1.0.0",
+    # Streamlit Frontend Dependencies
+    "streamlit>=1.48.0",
+    "plotly>=5.15.0",
+    "streamlit-option-menu>=0.3.6",
+    "streamlit-aggrid>=0.3.4",
+    "python-multipart>=0.0.6",
+    "pillow>=11.3.0",
+    "fastmcp>=2.11.2",
+]
+
+[project.optional-dependencies]
+# Development dependencies
+dev = [
+    "pytest>=7.0.0",
+    "pytest-asyncio>=0.21.0",
+    "black>=23.0.0",
+    "isort>=5.12.0",
+    "flake8>=6.0.0",
+    "mypy>=1.0.0",
+]
+
+# Streamlit-only dependencies for minimal frontend-only installations
+streamlit = [
+    "streamlit>=1.48.0",
+    "pandas>=2.3.1",
+    "plotly>=5.15.0",
+    "numpy>=2.3.1",
+    "streamlit-option-menu>=0.3.6",
+    "streamlit-aggrid>=0.3.4",
+    "python-multipart>=0.0.6",
+    "a2a-sdk>=0.2.15",  # Required for agent communication
+]
+
+[project.scripts]
+# Command-line scripts
+start-agents = "scripts.start_agents:main"
+mortgage-processor = "scripts.mortgage_cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src", "utilities"]
+
+[tool.uv]
+# UV-specific configuration
+dev-dependencies = [
+    "pytest>=7.0.0",
+    "pytest-asyncio>=0.21.0",
+    "black>=23.0.0",
+    "isort>=5.12.0",
+    "flake8>=6.0.0",
+    "mypy>=1.0.0",
+]
+
+[tool.black]
+line-length = 100
+target-version = ["py311"]
+
+[tool.isort]
+profile = "black"
+line_length = 100
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true

@@ -1,0 +1,37 @@
+{
+  "mcp_servers": {
+    "credit_server": {
+      "name": "Credit MCP Server",
+      "description": "Provides credit scoring and risk assessment services",
+      "port": null,
+      "transport": "stdio",
+      "tools": [
+        "get_credit_score",
+        "predict_default_risk", 
+        "comprehensive_credit_assessment"
+      ],
+      "location": "utilities/mcp/servers/credit_mcp_server.py",
+      "startup_command": "python utilities/mcp/servers/credit_mcp_server.py"
+    }
+  },
+  "mcp_clients": {
+    "credit_client": {
+      "name": "Credit MCP Client",
+      "description": "Client for connecting to credit MCP servers",
+      "server_url": "stdio://credit_server",
+      "location": "utilities/mcp/clients/mcp_client.py"
+    }
+  },
+  "mcp_tools": {
+    "credit_tools": {
+      "name": "Credit Risk Tools",
+      "description": "Tools for credit scoring and risk assessment",
+      "location": "utilities/mcp/tools/mcp_credit_tools.py",
+      "tools": [
+        "MockCreditAPITool",
+        "VertexAIRiskTool", 
+        "MCPCreditBroker"
+      ]
+    }
+  }
+}
